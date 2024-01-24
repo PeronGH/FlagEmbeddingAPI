@@ -25,12 +25,17 @@ class EmbeddingResponse(BaseModel):
 
 @app.post("/v1/embeddings", response_model=EmbeddingResponse)
 async def get_embeddings(request: EmbeddingRequest):
-    embedding = model.encode(request.input).tolist()
+    input = request.input if isinstance(request.input, list) else [request.input]
+    token_count = sum(len(i) for i in input)
 
-    token_count = len(request.input)  # Simplified token count
+    embeddings = model.encode(input, convert_to_numpy=False)
+
     response = {
         "object": "list",
-        "data": [{"object": "embedding", "embedding": embedding, "index": 0}],
+        "data": [
+            {"object": "embedding", "embedding": embedding.tolist(), "index": i}
+            for i, embedding in enumerate(embeddings)
+        ],
         "model": "BAAI/bge-large-zh-v1.5",
         "usage": {
             "prompt_tokens": token_count,
